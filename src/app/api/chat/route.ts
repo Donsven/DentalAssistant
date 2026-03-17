@@ -26,19 +26,23 @@ interface ChatMessage {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractAction(text: string): { action: Record<string, any> | null; cleanText: string } {
-  const actionRegex = /```action\s*\n?([\s\S]*?)\n?```/;
-  const match = text.match(actionRegex);
+function extractActions(text: string): { actions: Record<string, any>[]; cleanText: string } {
+  const actionRegex = /```action\s*\n?([\s\S]*?)\n?```/g;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actions: Record<string, any>[] = [];
+  let cleanText = text;
+  let match;
 
-  if (!match) return { action: null, cleanText: text };
-
-  try {
-    const action = JSON.parse(match[1].trim());
-    const cleanText = text.replace(actionRegex, "").trim();
-    return { action, cleanText };
-  } catch {
-    return { action: null, cleanText: text };
+  while ((match = actionRegex.exec(text)) !== null) {
+    try {
+      actions.push(JSON.parse(match[1].trim()));
+    } catch {
+      // skip malformed action blocks
+    }
   }
+
+  cleanText = text.replace(/```action\s*\n?[\s\S]*?\n?```/g, "").trim();
+  return { actions, cleanText };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,7 +121,6 @@ function executeAction(action: Record<string, any>): string {
         return `No ${members.length} consecutive back-to-back slots available on ${action.date}. Please try a different date.`;
       }
 
-      // Find the option starting at or closest to requested startTime
       let bestTimes = consecutiveOptions[0];
       if (action.startTime) {
         const requested = action.startTime;
@@ -153,9 +156,9 @@ function executeAction(action: Record<string, any>): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = (await request.json()) as { messages: ChatMessage[] };
+    const { messages, viewMode } = (await request.json()) as { messages: ChatMessage[]; viewMode?: "patient" | "admin" };
 
-    const systemPrompt = buildSystemPrompt();
+    const systemPrompt = buildSystemPrompt(viewMode || "patient");
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -170,19 +173,33 @@ export async function POST(request: NextRequest) {
 
     const responseText = completion.choices[0]?.message?.content || "";
 
-    // Check for actions in the response
-    const { action, cleanText } = extractAction(responseText);
-    let actionResult: string | null = null;
-    let finalText = cleanText;
+    console.log("\n=== CHAT API DEBUG ===");
+    console.log("Model raw response:", responseText);
 
-    if (action) {
-      actionResult = executeAction(action);
+    // Extract ALL action blocks from the response
+    const { actions } = extractActions(responseText);
+    console.log("Extracted actions:", JSON.stringify(actions, null, 2));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const executedActions: { action: Record<string, any>; result: string }[] = [];
+    let finalText = "";
 
-      // Send a follow-up to get a natural confirmation response
+    if (actions.length > 0) {
+      // Execute all actions in order
+      for (const action of actions) {
+        const result = executeAction(action);
+        executedActions.push({ action, result });
+      }
+
+      const resultsSummary = executedActions.map((e) => e.result).join(". ");
+
+      // Rebuild system prompt with fresh data (newly registered patients now have IDs)
+      const freshSystemPrompt = buildSystemPrompt(viewMode || "patient");
+
+      // Send a follow-up — allow actions so the model can chain register then book
       const followUp = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: freshSystemPrompt },
           ...messages.map((m) => ({
             role: m.role as "user" | "assistant",
             content: m.content,
@@ -190,19 +207,66 @@ export async function POST(request: NextRequest) {
           { role: "assistant", content: responseText },
           {
             role: "user",
-            content: `[System: Action completed — ${actionResult}. Please respond naturally to the patient, confirming what was done. Do NOT include another action block.]`,
+            content: `[System: Actions completed — ${resultsSummary}. Respond naturally to the patient confirming what was done. If the patient also wanted to book an appointment and that hasn't been done yet, go ahead and include a book_appointment action block now using the patient's correct ID from the system.]`,
           },
         ],
       });
 
-      finalText = (followUp.choices[0]?.message?.content || "")
-        .replace(/```action[\s\S]*?```/g, "")
-        .trim();
+      const followUpText = followUp.choices[0]?.message?.content || "";
+      console.log("Follow-up response:", followUpText);
+      const { actions: followUpActions, cleanText: followUpClean } = extractActions(followUpText);
+      console.log("Follow-up actions:", JSON.stringify(followUpActions, null, 2));
+
+      if (followUpActions.length > 0) {
+        // Execute chained actions (e.g. booking after registration)
+        for (const action of followUpActions) {
+          const result = executeAction(action);
+          executedActions.push({ action, result });
+        }
+
+        // Final natural response
+        const finalPrompt = buildSystemPrompt(viewMode || "patient");
+        const finalFollowUp = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: finalPrompt },
+            ...messages.map((m) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            })),
+            { role: "assistant", content: responseText },
+            {
+              role: "user",
+              content: `[System: All actions completed — ${executedActions.map((e) => e.result).join(". ")}. Respond naturally to the patient confirming everything that was done. Do NOT include any action blocks.]`,
+            },
+          ],
+        });
+
+        finalText = (finalFollowUp.choices[0]?.message?.content || "")
+          .replace(/```action[\s\S]*?```/g, "")
+          .trim();
+      } else {
+        finalText = followUpClean;
+      }
+    } else {
+      finalText = responseText;
     }
+
+    console.log("All executed actions:", executedActions.map(e => `${e.action.type}: ${e.result}`));
+    console.log("=== END DEBUG ===\n");
+
+    // Return the last executed action for the UI badge (prefer book over register)
+    const primaryAction = executedActions.length > 0
+      ? executedActions.find((e) => e.action.type === "book_appointment" || e.action.type === "book_family_appointments")
+        || executedActions[executedActions.length - 1]
+      : null;
 
     return NextResponse.json({
       message: finalText,
-      action: action ? { ...action, result: actionResult } : null,
+      action: primaryAction ? { ...primaryAction.action, result: primaryAction.result } : null,
+      allActions: executedActions.length > 0
+        ? executedActions.map((e) => ({ ...e.action, result: e.result }))
+        : null,
     });
   } catch (error) {
     console.error("Chat API error:", error);

@@ -10,6 +10,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, RotateCcw, X, History, Trash2, MessageSquare, ChevronRight, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import { useViewMode } from "@/components/ViewContext";
 
 interface Message {
   id: string;
@@ -18,6 +19,9 @@ interface Message {
   action?: {
     type: string;
     result?: string;
+    patientId?: string;
+    patientName?: string;
+    familyGroupId?: string;
   } | null;
 }
 
@@ -34,6 +38,67 @@ const WELCOME_MSG: Message = {
   text: "Hey, I'm Ria from Resonate Dental. Need to book, reschedule, or have a question? Go ahead.",
   action: null,
 };
+
+function savePatientIdentity(action: Record<string, unknown>) {
+  if (!action) return;
+  const result = (action.result as string) || "";
+
+  const addPatientId = (id: string) => {
+    const ids: string[] = JSON.parse(localStorage.getItem("my_patient_ids") || "[]");
+    if (!ids.includes(id)) {
+      ids.push(id);
+      localStorage.setItem("my_patient_ids", JSON.stringify(ids));
+    }
+  };
+
+  const addPatientName = (name: string) => {
+    const names: string[] = JSON.parse(localStorage.getItem("my_patient_names") || "[]");
+    if (!names.includes(name)) {
+      names.push(name);
+      localStorage.setItem("my_patient_names", JSON.stringify(names));
+    }
+  };
+
+  // Extract patient IDs from result strings (works for register, lookup, book, etc.)
+  const idMatches = result.matchAll(/ID:\s*(p[\w-]+)/g);
+  for (const m of idMatches) {
+    addPatientId(m[1]);
+  }
+
+  // Capture patientId field from any action that has it
+  if (typeof action.patientId === "string" && action.patientId.startsWith("p")) {
+    addPatientId(action.patientId);
+  }
+
+  // ALWAYS save patient name — this is the reliable fallback for matching appointments
+  // even when the model uses a wrong patientId (e.g. phone number)
+  if (typeof action.fullName === "string") {
+    addPatientName(action.fullName);
+  }
+  if (typeof action.patientName === "string") {
+    addPatientName(action.patientName);
+  }
+  // Also extract name from result string for register_patient
+  if (action.type === "register_patient") {
+    const nameMatch = result.match(/Patient registered successfully:\s*(.+?)\s*\(ID:/);
+    if (nameMatch) {
+      addPatientName(nameMatch[1]);
+    }
+  }
+
+  // Save family group ID
+  if (action.type === "create_family_group" || action.type === "book_family_appointments") {
+    const fgMatch = result.match(/ID:\s*(fg[\w-]+)/);
+    const fgId = fgMatch ? fgMatch[1] : (action.familyGroupId as string | undefined);
+    if (fgId) {
+      const fgIds: string[] = JSON.parse(localStorage.getItem("my_family_group_ids") || "[]");
+      if (!fgIds.includes(fgId)) {
+        fgIds.push(fgId);
+        localStorage.setItem("my_family_group_ids", JSON.stringify(fgIds));
+      }
+    }
+  }
+}
 
 function loadSessions(): ChatSession[] {
   if (typeof window === "undefined") return [];
@@ -65,6 +130,7 @@ export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const { viewMode } = useViewMode();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -129,7 +195,7 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, viewMode }),
       });
 
       const data = await res.json();
@@ -140,6 +206,14 @@ export default function ChatPage() {
           { id: crypto.randomUUID(), role: "assistant", text: "I'm sorry, I'm having a little trouble right now. Could you try again in a moment?" },
         ]);
       } else {
+        // Save identity from ALL executed actions (register + book can happen together)
+        if (data.allActions && Array.isArray(data.allActions)) {
+          for (const act of data.allActions) {
+            savePatientIdentity(act);
+          }
+        } else if (data.action) {
+          savePatientIdentity(data.action);
+        }
         setMessages((prev) => [
           ...prev,
           { id: crypto.randomUUID(), role: "assistant", text: data.message, action: data.action },
@@ -355,8 +429,10 @@ export default function ChatPage() {
                   msg.action!.type === "lookup_patient" ? (isNotFound ? "Patient not found" : "Patient found") :
                   null;
                 const href =
-                  msg.action!.type === "book_appointment" || msg.action!.type === "cancel_appointment" || msg.action!.type === "reschedule_appointment" ? "/appointments" :
-                  msg.action!.type === "register_patient" || msg.action!.type === "lookup_patient" ? "/patients" :
+                  msg.action!.type === "book_appointment" || msg.action!.type === "cancel_appointment" || msg.action!.type === "reschedule_appointment"
+                    ? (viewMode === "patient" ? "/my-appointments" : "/appointments") :
+                  msg.action!.type === "register_patient" || msg.action!.type === "lookup_patient"
+                    ? (viewMode === "patient" ? "/my-household" : "/patients") :
                   msg.action!.type === "notify_staff" ? "/notifications" :
                   null;
                 const colors = isNotFound

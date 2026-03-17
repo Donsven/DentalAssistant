@@ -8,23 +8,40 @@
 
 import { useState } from "react";
 import Sidebar from "./Sidebar";
+import PatientSidebar from "./PatientSidebar";
 import { NotificationProvider } from "./NotificationContext";
+import { ViewProvider, useViewMode } from "./ViewContext";
 
-export default function ShellLayout({ children }: { children: React.ReactNode }) {
+function ShellContent({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const { viewMode } = useViewMode();
 
   return (
-    <NotificationProvider>
+    <>
       {/* Ambient gradient mesh — gives glass sidebar content to refract */}
       <div className="ambient-bg" />
 
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      {viewMode === "admin" ? (
+        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      ) : (
+        <PatientSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      )}
       <div
         className="relative z-10 min-h-screen transition-all duration-300 ease-out"
         style={{ paddingLeft: collapsed ? 68 : 240 }}
       >
         {children}
       </div>
-    </NotificationProvider>
+    </>
+  );
+}
+
+export default function ShellLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ViewProvider>
+      <NotificationProvider>
+        <ShellContent>{children}</ShellContent>
+      </NotificationProvider>
+    </ViewProvider>
   );
 }

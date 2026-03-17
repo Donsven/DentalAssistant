@@ -1,6 +1,6 @@
 # Resonate Dental Chatbot
 
-AI-powered dental practice assistant built for Resonate AI. Patients can book, reschedule, and cancel appointments through natural conversation with Ria, the virtual receptionist. Staff can manage patients, appointments, and family groups through the dashboard.
+AI-powered dental practice assistant built for Resonate AI. Features a **dual-view interface**: a consumer-facing **Patient View** for booking and managing appointments through natural conversation, and a staff-facing **Admin View** for full practice management.
 
 ## Setup
 
@@ -40,10 +40,12 @@ Open http://localhost:3000
 ```
 src/
   app/
-    page.tsx              Chat interface
-    appointments/         Calendar view and appointment management
-    patients/             Patient records with search, sort, edit, delete
-    notifications/        Staff notification feed
+    page.tsx              Chat interface (shared across both views)
+    my-appointments/      Patient-facing appointment list
+    my-household/         Patient-facing family/household view
+    appointments/         Admin: calendar view and appointment management
+    patients/             Admin: patient records with search, sort, edit, delete
+    notifications/        Admin: staff notification feed
     api/
       chat/               POST. Sends messages to OpenAI, executes actions
       appointments/       GET, POST, DELETE
@@ -51,8 +53,10 @@ src/
       availability/       GET with optional date filter
       family-groups/      GET, POST, PUT, DELETE
   components/
-    Sidebar.tsx           Liquid glass navigation sidebar
-    ShellLayout.tsx       Layout wrapper with sidebar and ambient background
+    Sidebar.tsx           Admin navigation sidebar (liquid glass)
+    PatientSidebar.tsx    Patient navigation sidebar (Chat, My Appointments, My Household)
+    ShellLayout.tsx       Layout wrapper — switches sidebar based on view mode
+    ViewContext.tsx        React context for patient/admin view toggle
     NotificationContext.tsx  Client-side notification state
   lib/
     db.ts                 All database read/write operations
@@ -86,6 +90,16 @@ Actions the model can trigger:
 - add_to_family
 - book_family_appointments
 
+## Dual-View Interface
+
+The app defaults to **Patient View** — a consumer-facing experience with just three pages:
+
+- **Chat** — talk to Ria to book, reschedule, cancel, or ask questions
+- **My Appointments** — see upcoming and past appointments with next-appointment highlights
+- **My Household** — view family members, insurance info, and each member's next appointment
+
+Switch to **Admin View** via the sidebar button to access the full staff dashboard (Appointments calendar, Patient records, Notifications). The view preference is persisted in localStorage.
+
 ## Features
 
 ### Chat
@@ -99,7 +113,21 @@ Actions the model can trigger:
 - New chat confirmation dialog
 - Action badges that link to relevant pages
 
-### Appointments
+### My Appointments (Patient View)
+- Clean list of upcoming appointments with date cards and type badges
+- "Today" highlight for same-day appointments
+- Past appointments section (faded)
+- "Book via Chat" button directs to Ria
+- Practice info footer with hours, phone, and address
+
+### My Household (Patient View)
+- Family groups with member cards showing phone, DOB, insurance
+- Primary contact crown indicator
+- Next upcoming appointment shown per member
+- "Add via Chat" button for registering new family members
+- Individual (ungrouped) members section
+
+### Appointments (Admin View)
 - Monthly calendar view with day filtering
 - Appointment cards with type badges
 - Add appointment modal with patient selection or inline new patient creation
@@ -107,7 +135,7 @@ Actions the model can trigger:
 - Cancel appointments with confirmation
 - Calendar dots indicate days with appointments
 
-### Patients
+### Patients (Admin View)
 - Search across name, phone, DOB, insurance, notes
 - Sort by name, DOB, insurance, date added
 - Add, edit, delete patients
@@ -115,7 +143,7 @@ Actions the model can trigger:
 - Family group support with color-coded grouping, primary contact designation, and collapse/expand
 - Create family groups from ungrouped patients
 
-### Notifications
+### Notifications (Admin View)
 - Displays staff alerts from emergency notifications
 - Unread count badge in sidebar
 - Mark all read
@@ -162,4 +190,4 @@ Ria's personality is defined in src/lib/system-prompt.ts. Key design decisions:
 
 **Atomic family booking**: The book_family_appointments action reserves consecutive slots in a single transaction. If any slot is unavailable, none are booked.
 
-**GPT-4o-mini**: Cheapest OpenAI model that follows system prompts well. Full test coverage costs under $0.10.
+**GPT-4o-mini**: Cheapest OpenAI model that follows system prompts well. Full test coverage costs under $0.10.Œ

@@ -12,28 +12,20 @@ import { usePathname } from "next/navigation";
 import {
   MessageSquare,
   CalendarDays,
-  Bell,
-  ChevronLeft,
   Users,
-  User,
+  ChevronLeft,
+  ShieldCheck,
 } from "lucide-react";
-import { useNotifications } from "./NotificationContext";
-import { useViewMode } from "./ViewContext";
 import { useState, useRef, useEffect } from "react";
+import { useViewMode } from "./ViewContext";
 
-const NAV_ITEMS: {
-  href: string;
-  label: string;
-  icon: typeof MessageSquare;
-  hasBadge?: boolean;
-}[] = [
+const NAV_ITEMS = [
   { href: "/", label: "Chat", icon: MessageSquare },
-  { href: "/appointments", label: "Appointments", icon: CalendarDays },
-  { href: "/patients", label: "Patients", icon: Users },
-  { href: "/notifications", label: "Notifications", icon: Bell, hasBadge: true },
+  { href: "/my-appointments", label: "My Appointments", icon: CalendarDays },
+  { href: "/my-household", label: "My Household", icon: Users },
 ];
 
-export default function Sidebar({
+export default function PatientSidebar({
   collapsed,
   onToggle,
 }: {
@@ -41,14 +33,12 @@ export default function Sidebar({
   onToggle: () => void;
 }) {
   const pathname = usePathname();
-  const { unreadCount } = useNotifications();
   const { setViewMode } = useViewMode();
   const navRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [pillStyle, setPillStyle] = useState<{ top: number; height: number } | null>(null);
   const [pillReady, setPillReady] = useState(false);
 
-  // Measure active nav item position and animate the pill
   useEffect(() => {
     const activeIndex = NAV_ITEMS.findIndex((item) => item.href === pathname);
     const el = itemRefs.current[activeIndex];
@@ -62,7 +52,6 @@ export default function Sidebar({
       height: elRect.height,
     });
 
-    // Enable transition after first paint so it doesn't animate on page load
     if (!pillReady) {
       requestAnimationFrame(() => setPillReady(true));
     }
@@ -75,7 +64,6 @@ export default function Sidebar({
       }`}
       style={{ position: "fixed" }}
     >
-      {/* All sidebar content sits above the ::before pseudo-element */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
         <div className="px-4 h-16 flex items-center gap-3 shrink-0 select-none">
@@ -106,7 +94,6 @@ export default function Sidebar({
 
         {/* Nav */}
         <nav ref={navRef} className="relative flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-          {/* Sliding glass pill */}
           {pillStyle && (
             <div
               className="absolute left-2 right-2 glass-nav-active rounded-xl pointer-events-none"
@@ -121,7 +108,6 @@ export default function Sidebar({
           {NAV_ITEMS.map((item, index) => {
             const active = pathname === item.href;
             const Icon = item.icon;
-            const badge = item.hasBadge ? unreadCount : 0;
             return (
               <Link
                 key={item.label}
@@ -143,14 +129,6 @@ export default function Sidebar({
                 >
                   {item.label}
                 </span>
-                {badge > 0 && (
-                  <span
-                    className="glass-badge text-white text-[10px] font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center leading-none transition-all duration-300 ease-out"
-                    style={collapsed ? { position: "absolute", top: -6, right: -6 } : { marginLeft: "auto" }}
-                  >
-                    {badge}
-                  </span>
-                )}
               </Link>
             );
           })}
@@ -161,20 +139,20 @@ export default function Sidebar({
 
         {/* Bottom section */}
         <div className="px-2 pb-4 pt-3 space-y-0.5">
-          {/* Patient View button */}
+          {/* Admin View button */}
           <button
-            onClick={() => setViewMode("patient")}
+            onClick={() => setViewMode("admin")}
             className="glass-nav-hover flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm w-full transition-all duration-200"
             style={{ color: "rgba(50, 69, 62, 0.55)" }}
           >
             <div className="w-[18px] h-[18px] shrink-0">
-              <User className="w-[18px] h-[18px]" />
+              <ShieldCheck className="w-[18px] h-[18px]" />
             </div>
             <span
               className="overflow-hidden transition-all duration-300 ease-out whitespace-nowrap"
               style={{ width: collapsed ? 0 : "auto", opacity: collapsed ? 0 : 1 }}
             >
-              Patient View
+              Admin View
             </span>
           </button>
 

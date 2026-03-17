@@ -38,5 +38,15 @@
     "notes": "",
     "id": "a1773706762525",
     "status": "scheduled"
+  },
+  {
+    "patientId": "p7839384738",
+    "patientName": "John Apple",
+    "date": "2026-03-20",
+    "time": "13:00",
+    "type": "general_checkup",
+    "notes": "",
+    "id": "a1773728952515",
+    "status": "scheduled"
   }
 ]
