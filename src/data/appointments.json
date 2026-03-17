@@ -1,0 +1,42 @@
+[
+  {
+    "id": "a1",
+    "patientId": "p1",
+    "patientName": "Sarah Johnson",
+    "date": "2026-03-18",
+    "time": "09:00",
+    "type": "cleaning",
+    "status": "scheduled",
+    "notes": ""
+  },
+  {
+    "id": "a2",
+    "patientId": "p2",
+    "patientName": "Michael Chen",
+    "date": "2026-03-19",
+    "time": "14:00",
+    "type": "general_checkup",
+    "status": "scheduled",
+    "notes": ""
+  },
+  {
+    "id": "a3",
+    "patientId": "p3",
+    "patientName": "Emily Rodriguez",
+    "date": "2026-03-20",
+    "time": "10:00",
+    "type": "cleaning",
+    "status": "scheduled",
+    "notes": ""
+  },
+  {
+    "patientId": "6268492738",
+    "patientName": "Leah Johnson",
+    "date": "2026-03-28",
+    "time": "16:00",
+    "type": "general_checkup",
+    "notes": "",
+    "id": "a1773706762525",
+    "status": "scheduled"
+  }
+]

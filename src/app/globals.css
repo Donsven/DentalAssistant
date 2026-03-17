@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3f4f6;
+  --foreground: #111827;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --glass-bg: rgba(255, 255, 255, 0.42);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-highlight: rgba(255, 255, 255, 0.7);
+  --glass-shadow: rgba(50, 69, 62, 0.08);
+  --resonate-dark: #32453E;
+  --resonate-sage: #B3C5B6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+}
+
+button, a, select, label[class*="cursor"], [role="button"] {
+  cursor: pointer;
+}
+
+/* ── Ambient background mesh for glass refraction ── */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(179, 197, 182, 0.35) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 70% at 85% 75%, rgba(50, 69, 62, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 50% 10%, rgba(179, 197, 182, 0.18) 0%, transparent 50%),
+    linear-gradient(145deg, #f0f2f0 0%, #e8ebe9 30%, #f3f4f6 60%, #eef0ed 100%);
+}
+
+/* ── Liquid Glass Sidebar ── */
+.glass-sidebar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(40px) saturate(1.8) brightness(1.05);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8) brightness(1.05);
+  border-right: 1px solid var(--glass-border);
+  box-shadow:
+    /* outer diffused glow */
+    4px 0 24px -2px var(--glass-shadow),
+    /* inner specular highlight — top edge refraction */
+    inset 0 1px 0 0 var(--glass-highlight),
+    /* inner left edge light catch */
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.45),
+    /* subtle bottom shadow for depth */
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.03);
+}
+
+/* Specular sheen layer — the "liquid" refraction band */
+.glass-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.35) 0%,
+      rgba(255, 255, 255, 0.08) 20%,
+      transparent 40%,
+      transparent 75%,
+      rgba(255, 255, 255, 0.06) 100%
+    );
+  border-radius: inherit;
+}
+
+/* Glass dividers */
+.glass-divider {
+  border-color: rgba(50, 69, 62, 0.08);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4) 50%, transparent);
+  height: 1px;
+  border: none;
+}
+
+/* Glass nav item — active state gets its own inner glass */
+.glass-nav-active {
+  background: rgba(50, 69, 62, 0.1);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.02),
+    0 1px 3px -1px rgba(50, 69, 62, 0.1);
+  border: 1px solid rgba(50, 69, 62, 0.08);
+}
+
+.glass-nav-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-nav-hover:hover {
+  background: rgba(50, 69, 62, 0.06);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Glass logo pill */
+.glass-logo {
+  background: linear-gradient(135deg, var(--resonate-dark) 0%, #3d5a50 100%);
+  box-shadow:
+    0 2px 8px -2px rgba(50, 69, 62, 0.4),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Badge with glass treatment */
+.glass-badge {
+  background: rgba(239, 68, 68, 0.85);
+  backdrop-filter: blur(4px);
+  box-shadow:
+    0 1px 4px -1px rgba(239, 68, 68, 0.4),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+/* ── Smooth scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Glass sidebar scrollbar */
+.glass-sidebar ::-webkit-scrollbar-thumb {
+  background: rgba(50, 69, 62, 0.15);
+}
+.glass-sidebar ::-webkit-scrollbar-thumb:hover {
+  background: rgba(50, 69, 62, 0.25);
+}
+
+/* Fade in */
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Animations ── */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg) scale(var(--logo-scale, 1)); }
+  20% { transform: rotate(-12deg) scale(var(--logo-scale, 1)); }
+  40% { transform: rotate(10deg) scale(var(--logo-scale, 1)); }
+  60% { transform: rotate(-8deg) scale(var(--logo-scale, 1)); }
+  80% { transform: rotate(6deg) scale(var(--logo-scale, 1)); }
+}
+.animate-wiggle {
+  animation: wiggle 0.4s ease-in-out;
+}
+
+@keyframes scale-in {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.animate-scale-in {
+  animation: scale-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Typing indicator */
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+.typing-dot {
+  animation: bounce-dot 1.4s infinite ease-in-out both;
+}
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.typing-dot:nth-child(3) { animation-delay: 0s; }

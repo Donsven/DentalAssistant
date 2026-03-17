@@ -1,0 +1,57 @@
+[
+  {
+    "id": "p1",
+    "fullName": "Sarah Johnson",
+    "phone": "555-0101",
+    "dateOfBirth": "1985-03-15",
+    "insurance": "Delta Dental",
+    "notes": "Prefers morning appointments",
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": "p2",
+    "fullName": "Michael Chen",
+    "phone": "555-0102",
+    "dateOfBirth": "1990-07-22",
+    "insurance": "Cigna Dental",
+    "notes": "",
+    "createdAt": "2024-02-05"
+  },
+  {
+    "id": "p3",
+    "fullName": "Emily Rodriguez",
+    "phone": "555-0103",
+    "dateOfBirth": "1978-11-30",
+    "insurance": "Aetna",
+    "notes": "Allergic to latex",
+    "createdAt": "2024-03-18"
+  },
+  {
+    "id": "p4",
+    "fullName": "James Wilson",
+    "phone": "555-0104",
+    "dateOfBirth": "1995-01-08",
+    "insurance": null,
+    "notes": "Interested in membership plan",
+    "createdAt": "2024-04-02"
+  },
+  {
+    "id": "p5",
+    "fullName": "Lisa Martinez",
+    "phone": "555-0105",
+    "dateOfBirth": "1982-09-14",
+    "insurance": "MetLife Dental",
+    "notes": "",
+    "createdAt": "2024-05-20"
+  },
+  {
+    "fullName": "Leah Johnson",
+    "phone": "6268492738",
+    "dateOfBirth": "1985-04-22",
+    "insurance": "BlueCross",
+    "notes": "",
+    "familyGroupId": null,
+    "id": "p1773706752597",
+    "createdAt": "2026-03-17"
+  }
+]
